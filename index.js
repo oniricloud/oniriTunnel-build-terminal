@@ -7,11 +7,7 @@ import { header, footer, summary, command, flag, arg, bail, description, validat
 // import IPC from 'bare-ipc'
 import process from 'bare-process'
 import IPC from 'pear-ipc'
-import FramedStream from 'framed-stream'
-
-import RPC from 'bare-rpc'
 import path from 'bare-path'
-import pipe from "bare-pipe"
 
 import readline from 'bare-readline'  // Module for reading user input in terminal
 import tty from 'bare-tty'
@@ -131,22 +127,6 @@ function table(headers, rows, options = {}) {
     return [top, headerLine, mid, body, bottom].join('\n')
 }
 
-
-const methods = [
-    { id: 102, name: 'START_ONIRI_SERVICE' },
-    { id: 103, name: 'STOP_ONIRI_SERVICE' },
-    { id: 104, name: 'GET_ONIRI_SERVICE_STATUS' },
-    { id: 105, name: 'SEND_NOTIFICATION' },
-    { id: 106, name: 'RESTART_ONIRI_SERVICE' },
-    { id: 107, name: 'GET_STATUS' },
-    { id: 108, name: 'CONFIGURE' },
-    { id: 109, name: 'RESET_CONFIG' },
-    { id: 110, name: 'GET_LOGS' },
-    { id: 111, name: 'SET_AUTO_LAUNCH' },
-    { id: 112, name: 'SET_AUTO_START_DAEMON' },
-    { id: 113, name: 'GET_ALL_SERVICES' },
-    { id: 114, name: 'GET_ALLOWED_LIST' },
-]
 
 const handleRpcCommand = {
 
@@ -459,39 +439,9 @@ const handleRpcCommand = {
 
 
 
-const init = async () => {
-    if (fs.existsSync(SOCKET_PATH)) {
-        fs.unlinkSync(SOCKET_PATH);
-    }
-    server = new IPC.Server({
-        socketPath: SOCKET_PATH,
-        methods,
-        handlers: handleRpcCommand
-    })
 
-    server.on('close', () => {
-        console.log('IPC server closed')
-        process.exit(0);
-    })
-
-    await server.ready()
-
-}
-
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    // Application specific logging, throwing an error, or other logic here
-});
-goodbye(() => {
-    console.log("Received termination signal, shutting down...")
-    if (server !== null) {
-        server.close()
-    }
-})
 
 const runService = async () => {
-
-
 
     const commands = {
         oniriTunnel: {
@@ -793,7 +743,19 @@ const runService = async () => {
 
 
 }
-// await start()
+
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Application specific logging, throwing an error, or other logic here
+});
+goodbye(() => {
+    console.log("Received termination signal, shutting down...")
+    if (server !== null) {
+        server.close()
+    }
+})
+
 await runService()
 
 
