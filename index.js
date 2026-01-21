@@ -47,6 +47,7 @@ let settings = {
 }
 let server = null
 let isConfigured = false;
+let showTty = true
 
 function table(headers, rows, options = {}) {
     const align = options.align || headers.map(() => 'left')
@@ -567,6 +568,9 @@ const runService = async () => {
             name: "config",
             execute: async (flags, args) => {
                 console.log("Configuring Oniri Service with seed and password...", flags.pass, flags.seed)
+                if (flags.notty) {
+                    showTty = false
+                }
                 const res = await handleRpcCommand.CONFIGURE({ password: flags.pass, seed: flags.seed })
                 const resData = JSON.parse(res)
                 if (resData.error) {
@@ -651,9 +655,10 @@ const runService = async () => {
     const config = command(
         commands.config.name,
         header('Configure the Oniri Tunnel Service'),
-        summary('config --seed <seed> --pass <password>'),
+        summary('config --seed <seed> --pass <password> -notty (-n disable tty) used when running in docker'),
         flag('--seed|-s [seed]', 'The client seed found in oniricloud.com dashboard'),
         flag('--pass|-p [pass]', 'The password for the Oniri client'),
+        flag('--notty|-n', 'Disable TTY mode'),
         //  flag('--flag [val] ', 'Test flag').choices(['val1', 'val2', 'val3'])
         validate((p) => (p.flags.seed && p.flags.pass), "You must provide both client seed and password")
 
@@ -706,77 +711,84 @@ const runService = async () => {
 
     await commands.start.execute({}, [])
 
-    if (!isConfigured) {
-        const initcmd = command(
-            "oniriTunnel",
-            description('Command line interface for OniriTunnel service'),
-            header('Welcome to the Oniri Tunnel CLI'),
-            footer('oniricloud.com'),
-            config,
-            bail((bail) => {
-                if (bail.reason === "UNKNOWN_FLAG" || bail.reason === "UNKNOWN_ARG") {
-                    console.log("\n", "========= No such command found =========", "\n")
-                } else {
-                    console.log("\n", "=========", bail.reason, "===========", "\n")
-                }
-            })
-        )
- 
-        const initcmdParsed = initcmd.parse(process.argv.slice(1))
-        if (initcmdParsed == null) {
-            console.log("\n", "You need to configure the Oniri Tunnel Service before using it. Use the config command.", "\n")
-            process.exit(0)
-        } else {
 
-            if (initcmdParsed.name === "config") {
+
+
+    const initcmd = command(
+        "oniriTunnel",
+        description('Command line interface for OniriTunnel service'),
+        header('Welcome to the Oniri Tunnel CLI'),
+        footer('oniricloud.com'),
+        config,
+        bail((bail) => {
+            if (bail.reason === "UNKNOWN_FLAG" || bail.reason === "UNKNOWN_ARG") {
+                console.log("\n", "========= No such command found =========", "\n")
+            } else {
+                console.log("\n", "=========", bail.reason, "===========", "\n")
+            }
+        })
+    )
+
+    const initcmdParsed = initcmd.parse(process.argv.slice(1))
+    if (initcmdParsed == null) {
+        // console.log("\n", "You need to configure the Oniri Tunnel Service before using it. Use the config command.", "\n")
+        // process.exit(0)
+    } else {
+        if (initcmdParsed.name === "config") {
+            if (!isConfigured) {
                 console.log("Configuring Oniri Tunnel Service...")
                 await commands.config.execute(initcmdParsed.flags, initcmdParsed.args)
-                console.log("\n", "Oniri Tunnel Service configured successfully. You can now use other commands.", "\n")
-            } else {
-                console.log("\n", "You need to configure the Oniri Tunnel Service before using it. Use the config command.", "\n")
-                process.exit(0)
+                console.log("\n", "Oniri Tunnel Service configured successfully.", "\n")
+            }else{
+                if(initcmdParsed.flags.notty){
+                    showTty = false
+                }
+                console.log("\n", "Oniri Tunnel Service is already configured.", "\n")
             }
+        } else {
+            // console.log("\n", "You need to configure the Oniri Tunnel Service before using it. Use the config command.", "\n")
+            // process.exit(0)
         }
     }
 
+    if (showTty) {
 
+        rl.setPrompt('oniri> ')
+        rl.input.setMode(tty.constants.MODE_RAW) // Enable raw input mode for efficient key reading
 
-    rl.setPrompt('oniri> ')
-    rl.input.setMode(tty.constants.MODE_RAW) // Enable raw input mode for efficient key reading
+        rl.on('data', async (line) => {
+            const argv = line.toString().trim().split(' ').filter(Boolean)
+            const program = cmd.parse(argv)
+            if (program == null) {
+                console.log("\n", "You can always run the help command: --help", "\n")
+            } else {
 
-    rl.on('data', async (line) => {
-        const argv = line.toString().trim().split(' ').filter(Boolean)
-        const program = cmd.parse(argv)
-        if (program == null) {
-            console.log("\n", "You can always run the help command: --help", "\n")
-        } else {
+                if (!!commands[program.name]) {
+                    console.log("Executing Oniri command:", program.name)
+                    if (commands[program.name]?.execute) {
+                        // await init()
+                        await commands[program.name].execute(program.flags, program.args)
+                        //console.log("Command executed:", program.name)
+                    } else {
+                        console.log("No execute function for this command")
+                        cmd.parse(['--help'])
 
-            if (!!commands[program.name]) {
-                console.log("Executing Oniri command:", program.name)
-                if (commands[program.name]?.execute) {
-                    // await init()
-                    await commands[program.name].execute(program.flags, program.args)
-                    //console.log("Command executed:", program.name)
+                    }
+
                 } else {
-                    console.log("No execute function for this command")
-                    cmd.parse(['--help'])
+                    console.log("Unknown command:", program.name)
 
                 }
 
-            } else {
-                console.log("Unknown command:", program.name)
-
             }
-
-        }
+            rl.prompt()
+        })
         rl.prompt()
-    })
-    rl.prompt()
 
-    rl.on('close', () => {
-        process.exit()
-        process.kill(process.pid, 'SIGINT')
-    })
+        rl.on('close', () => {
+            process.exit()
+        })
+    }
     //console.log("Parsing command line arguments...",process.argv.slice(1))
 
 
