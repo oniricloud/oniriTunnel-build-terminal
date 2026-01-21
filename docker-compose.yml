@@ -5,12 +5,12 @@ services:
     build: .
     container_name: oniri-tunnel
     restart: unless-stopped
+    network_mode: host
     tty: true
     stdin_open: true
     environment:
       - ONIRI_SEED=${ONIRI_SEED}
       - ONIRI_PASSWORD=${ONIRI_PASSWORD}
-      - ONIRI_AUTO_START=${ONIRI_AUTO_START:-true}
     volumes:
       - oniri-config:/root/.oniri
       - oniri-logs:/root/.oniri/logs
@@ -18,21 +18,9 @@ services:
     # ports:
     #   - "8080:8080"
     #   - "3000:3000"
-    networks:
-      - oniri-network
-    healthcheck:
-      test: ["CMD", "bash", "-c", "echo 'status' | timeout 5 /app/oniri > /dev/null"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
 
 volumes:
   oniri-config:
     driver: local
   oniri-logs:
     driver: local
-
-networks:
-  oniri-network:
-    driver: bridge

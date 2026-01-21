@@ -30,7 +30,6 @@ RUN ARCH=$(uname -m) && \
 # Environment variables
 ENV ONIRI_SEED=""
 ENV ONIRI_PASSWORD=""
-ENV ONIRI_AUTO_START="true"
 
 # Create main entrypoint script
 RUN cat > /app/entrypoint.sh << 'EOF'
@@ -72,10 +71,6 @@ RUN chmod +x /app/entrypoint.sh
 
 # Expose any ports if needed (add specific ports based on your service requirements)
 # EXPOSE 8080
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD echo "status" | timeout 5 /app/oniri > /dev/null || exit 1
 
 # Use entrypoint script
 ENTRYPOINT ["/app/entrypoint.sh"]
