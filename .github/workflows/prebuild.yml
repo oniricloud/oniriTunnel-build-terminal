@@ -18,12 +18,12 @@ jobs:
           - os: macos-14
             platform: darwin
             arch: arm64
-          # - os: windows-2022
-          #   platform: win32
-          #   arch: x64
-          # - os: windows-2022
-          #   platform: win32
-          #   arch: arm64
+          - os: windows-2022
+            platform: win32
+            arch: x64
+          - os: windows-2022
+            platform: win32
+            arch: arm64
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.tags }}
     steps:
@@ -83,33 +83,24 @@ jobs:
         if: ${{ matrix.platform == 'win32' }}
       - run: npm install -g pear
       - run: npm install -g bare-make
+      - run: npm install -g bare-build
       - run: npm run install:all
-      - name: "Stage to channel"
-        run: |
-          echo "CHANNEL_LINK: ${CHANNEL_LINK}"
-          pear stage --ignore .git --no-ask ${CHANNEL_LINK} 
       - name: "Show bare-make version"
         run: bare-make --version
       - name: "Remove build if exists (Linux)"
         if: ${{ matrix.platform == 'linux' }}
-        working-directory: ./appling
         run: rm -rf build
       - name: "Remove build if exists (Windows)"
         if: ${{ matrix.platform == 'win32' }}
-        working-directory: ./appling
         run: |
           if (Test-Path "build") {
             Remove-Item -Path "build" -Recurse -Force
           }
         shell: powershell
-      - name: "Generate appling linux "
-        working-directory: ./appling
-        run: bare-make generate --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
-      - name: "Build appling"
-        working-directory: ./appling
-        run: bare-make build
+      - name: "Build  "
+        run: bare-build --standalone --host ${{ matrix.platform }}-${{ matrix.arch }} --out build --name oniri index.js 
       - name: "List build directory contents (Linux)"
-        working-directory: ./appling/build
+        working-directory: ./build
         run: |
           echo "=== Build directory contents ==="
           ls -la
@@ -117,20 +108,20 @@ jobs:
           find . -name "oniri" -type f
         if: ${{ matrix.platform == 'linux' }}
       - name: "List build directory contents (macOS)"
-        working-directory: ./appling/build
+        working-directory: ./build
         run: |
           echo "=== Build directory contents ==="
           ls -la
           echo "=== Looking for Oniri executable ==="
-          find . -name "Oniri" -type f
+          find . -name "oniri" -type f
         if: ${{ matrix.platform == 'darwin' }}
       - name: "List build directory contents (Windows)"
-        working-directory: ./appling/build
+        working-directory: ./build
         run: |
           echo "=== Build directory contents ==="
           Get-ChildItem -Force
           echo "=== Looking for Oniri executable ==="
-          Get-ChildItem -Recurse -Filter "Oniri.exe" -File
+          Get-ChildItem -Recurse -Filter "oniri.exe" -File
         shell: powershell
         if: ${{ matrix.platform == 'win32' }}
       - uses: actions/upload-artifact@v4
@@ -138,23 +129,21 @@ jobs:
         with:
           name: ${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.tags }}
           path: |
-            appling/build/oniri
+            build/oniri
           retention-days: 1
       - uses: actions/upload-artifact@v4
         if: ${{ matrix.platform == 'darwin' }}
         with:
           name: ${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.tags }}
           path: |
-            appling/build/Oniri
-            appling/build/Oniri.app
+            build/oniri
           retention-days: 1
       - uses: actions/upload-artifact@v4
         if: ${{ matrix.platform == 'win32' }}
         with:
           name: ${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.tags }}
           path: |
-            appling/build/Oniri.exe
-            appling/build/Release/Oniri.exe
+            appling/build/oniri.exe
           retention-days: 1
 
   merge:

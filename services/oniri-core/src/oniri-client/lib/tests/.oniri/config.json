@@ -1,0 +1,13 @@
+{
+    "services": {
+        "local": {},
+        "remote": {
+            "090289dce753b6fa81c1a5fd498339bcbe0299f2ba219ee028d5a97643100f7d": {
+                "name": "cloudClient",
+                "seed": "1b43a82c47f723454c1367857750a28a0fa6b91c19a643fd61ea3dba9390b339",
+                "topic": "6f6e697269436c6f75645270636f6e697269436c6f75645270636f6e69726943",
+                "transport": "rpc"
+            }
+        }
+    }
+}
