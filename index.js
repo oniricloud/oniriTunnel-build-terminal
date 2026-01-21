@@ -46,87 +46,88 @@ let settings = {
     autoStartDaemon: false
 }
 let server = null
+let isConfigured = false;
 
 function table(headers, rows, options = {}) {
-  const align = options.align || headers.map(() => 'left')
-  const maxWidth = options.width || process.stdout.columns || 80
+    const align = options.align || headers.map(() => 'left')
+    const maxWidth = options.width || process.stdout.columns || 80
 
-  const forceUnicode = options.unicode === true
+    const forceUnicode = options.unicode === true
 
-  const B = (!isWindows || forceUnicode)
-    ? {
-        topL: '┌', topM: '┬', topR: '┐',
-        midL: '├', midM: '┼', midR: '┤',
-        botL: '└', botM: '┴', botR: '┘',
-        h: '─', v: '│'
-      }
-    : {
-        topL: '+', topM: '+', topR: '+',
-        midL: '+', midM: '+', midR: '+',
-        botL: '+', botM: '+', botR: '+',
-        h: '-', v: '|'
-      }
+    const B = (!isWindows || forceUnicode)
+        ? {
+            topL: '┌', topM: '┬', topR: '┐',
+            midL: '├', midM: '┼', midR: '┤',
+            botL: '└', botM: '┴', botR: '┘',
+            h: '─', v: '│'
+        }
+        : {
+            topL: '+', topM: '+', topR: '+',
+            midL: '+', midM: '+', midR: '+',
+            botL: '+', botM: '+', botR: '+',
+            h: '-', v: '|'
+        }
 
-  // Normalize rows
-  rows = rows.map(r => headers.map((_, i) => r[i] ?? ''))
+    // Normalize rows
+    rows = rows.map(r => headers.map((_, i) => r[i] ?? ''))
 
-  // Convert all to strings
-  const all = [headers, ...rows].map(row => row.map(c => String(c)))
+    // Convert all to strings
+    const all = [headers, ...rows].map(row => row.map(c => String(c)))
 
-  // Compute column widths
-  let colWidths = headers.map((_, i) =>
-    Math.max(...all.map(r => r[i].length))
-  )
-
-  // Compute total width
-  const borderWidth = colWidths.length * 3 + 1
-  let totalWidth = colWidths.reduce((a, b) => a + b, 0) + borderWidth
-
-  // Scale columns if needed
-  if (totalWidth > maxWidth) {
-    const scale =
-      (maxWidth - borderWidth) /
-      colWidths.reduce((a, b) => a + b, 0)
-
-    colWidths = colWidths.map(w =>
-      Math.max(1, Math.floor(w * scale))
+    // Compute column widths
+    let colWidths = headers.map((_, i) =>
+        Math.max(...all.map(r => r[i].length))
     )
-  }
 
-  // Truncate helper
-  const truncate = (text, width) =>
-    text.length > width
-      ? text.slice(0, width - 1) + '…'
-      : text
+    // Compute total width
+    const borderWidth = colWidths.length * 3 + 1
+    let totalWidth = colWidths.reduce((a, b) => a + b, 0) + borderWidth
 
-  // Line helper
-  const line = (left, mid, right) =>
-    left +
-    colWidths.map(w => B.h.repeat(w + 2)).join(mid) +
-    right
+    // Scale columns if needed
+    if (totalWidth > maxWidth) {
+        const scale =
+            (maxWidth - borderWidth) /
+            colWidths.reduce((a, b) => a + b, 0)
 
-  // Row renderer
-  const renderRow = (row) =>
-    B.v +
-    row.map((c, i) => {
-      const t = truncate(String(c), colWidths[i])
-      return (
-        ' ' +
-        (align[i] === 'right'
-          ? t.padStart(colWidths[i])
-          : t.padEnd(colWidths[i])) +
-        ' '
-      )
-    }).join(B.v) +
-    B.v
+        colWidths = colWidths.map(w =>
+            Math.max(1, Math.floor(w * scale))
+        )
+    }
 
-  const top = line(B.topL, B.topM, B.topR)
-  const headerLine = renderRow(headers)
-  const mid = line(B.midL, B.midM, B.midR)
-  const body = rows.map(renderRow).join('\n')
-  const bottom = line(B.botL, B.botM, B.botR)
+    // Truncate helper
+    const truncate = (text, width) =>
+        text.length > width
+            ? text.slice(0, width - 1) + '…'
+            : text
 
-  return [top, headerLine, mid, body, bottom].join('\n')
+    // Line helper
+    const line = (left, mid, right) =>
+        left +
+        colWidths.map(w => B.h.repeat(w + 2)).join(mid) +
+        right
+
+    // Row renderer
+    const renderRow = (row) =>
+        B.v +
+        row.map((c, i) => {
+            const t = truncate(String(c), colWidths[i])
+            return (
+                ' ' +
+                (align[i] === 'right'
+                    ? t.padStart(colWidths[i])
+                    : t.padEnd(colWidths[i])) +
+                ' '
+            )
+        }).join(B.v) +
+        B.v
+
+    const top = line(B.topL, B.topM, B.topR)
+    const headerLine = renderRow(headers)
+    const mid = line(B.midL, B.midM, B.midR)
+    const body = rows.map(renderRow).join('\n')
+    const bottom = line(B.botL, B.botM, B.botR)
+
+    return [top, headerLine, mid, body, bottom].join('\n')
 }
 
 
@@ -153,12 +154,11 @@ const handleRpcCommand = {
             if (!oniriServiceInstance) {
                 logger.info('Starting Oniri service...');
                 oniriServiceInstance = await oniriService(rpc);
-                const isConfigured = oniriServiceInstance.isConfigured()
+                isConfigured = oniriServiceInstance.isConfigured()
 
                 if (!isConfigured) {
                     logger.warn('No configuration found');
                     return JSON.stringify({ data: { started: false, msg: 'No configuration found' } })
-                    return
                 }
 
                 oniriServiceInstance.init()
@@ -167,12 +167,11 @@ const handleRpcCommand = {
                 return JSON.stringify({ data: { started: true } })
             } else {
                 if (!oniriServiceInstanceInitialized) {
-                    const isConfigured = oniriServiceInstance.isConfigured()
+                    isConfigured = oniriServiceInstance.isConfigured()
 
                     if (!isConfigured) {
                         logger.warn('No configuration found');
                         return JSON.stringify({ data: { started: false, msg: 'No configuration found' } })
-                        return
                     }
                     oniriServiceInstance.init()
                     oniriServiceInstanceInitialized = true
@@ -502,7 +501,7 @@ const runService = async () => {
             },
             shouldContinue: false
         },
-         stop: {
+        stop: {
             name: "stop",
             execute: async (flags, args) => {
                 // console.log("stop command executed", flags, args)
@@ -514,16 +513,16 @@ const runService = async () => {
                 } else {
                     stopResData.stopped && console.log('Oniri Service stopped successfully')
                 }
-              
+
             },
             shouldContinue: false
         },
-         exit: {
+        exit: {
             name: "exit",
             execute: async (flags, args) => {
                 // console.log("stop command executed", flags, args)
-               process.exit()
-              
+                process.exit()
+
             },
             shouldContinue: false
         },
@@ -537,7 +536,7 @@ const runService = async () => {
                 if (startResData.error) {
                     console.error('Error starting Oniri Service:', startResData.error)
                 } else {
-                    if(startResData.data.msg){
+                    if (startResData.data.msg) {
                         console.error('Oniri Service could not start:', startResData.data.msg)
                         return
                     }
@@ -567,7 +566,7 @@ const runService = async () => {
         config: {
             name: "config",
             execute: async (flags, args) => {
-                
+
                 const res = await handleRpcCommand.CONFIGURE({ password: flags.pass, seed: flags.seed })
                 const resData = JSON.parse(res)
                 if (resData.error) {
@@ -679,7 +678,7 @@ const runService = async () => {
         footer('Use this command to stop the server'),
     )
 
-     const exit = command(
+    const exit = command(
         commands.exit.name,
         header('Exit the server'),
         footer('Use this command to exit the server'),
@@ -706,6 +705,41 @@ const runService = async () => {
     )
 
     await commands.start.execute({}, [])
+
+    if (!isConfigured) {
+        const initcmd = command(
+            "oniriTunnel",
+            description('Command line interface for OniriTunnel service'),
+            header('Welcome to the Oniri Tunnel CLI'),
+            footer('oniricloud.com'),
+            config,
+            bail((bail) => {
+                if (bail.reason === "UNKNOWN_FLAG" || bail.reason === "UNKNOWN_ARG") {
+                    console.log("\n", "========= No such command found =========", "\n")
+                } else {
+                    console.log("\n", "=========", bail.reason, "===========", "\n")
+                }
+            })
+        )
+
+        const initcmdParsed = initcmd.parse(process.argv.slice(2))
+        if (initcmdParsed == null) {
+            console.log("\n", "You need to configure the Oniri Tunnel Service before using it. Use the config command.", "\n")
+            process.exit(0)
+        } else {
+
+            if (initcmdParsed.name === "config") {
+                console.log("Configuring Oniri Tunnel Service...")
+                await commands.config.execute(initcmdParsed.flags, initcmdParsed.args)
+                console.log("\n", "Oniri Tunnel Service configured successfully. You can now use other commands.", "\n")
+            } else {
+                console.log("\n", "You need to configure the Oniri Tunnel Service before using it. Use the config command.", "\n")
+                process.exit(0)
+            }
+        }
+    }
+
+
 
     rl.setPrompt('oniri> ')
     rl.input.setMode(tty.constants.MODE_RAW) // Enable raw input mode for efficient key reading
@@ -740,8 +774,8 @@ const runService = async () => {
     rl.prompt()
 
     rl.on('close', () => {
-       process.exit()
-       process.kill(process.pid, 'SIGINT')
+        process.exit()
+        process.kill(process.pid, 'SIGINT')
     })
     //console.log("Parsing command line arguments...",process.argv.slice(1))
 
