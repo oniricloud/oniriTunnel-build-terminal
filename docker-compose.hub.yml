@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  oniri-tunnel:
+    image: sce9sc/oniri:latest
+    container_name: oniri-tunnel-hub
+    restart: unless-stopped
+    network_mode: host
+    tty: true
+    stdin_open: true
+    environment:
+      - ONIRI_SEED=${ONIRI_SEED}
+      - ONIRI_PASSWORD=${ONIRI_PASSWORD}
+    volumes:
+      - oniri-config-hub:/root/.oniri
+    pull_policy: always
+
+volumes:
+  oniri-config-hub:
+    driver: local
