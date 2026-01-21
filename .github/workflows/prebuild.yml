@@ -143,7 +143,7 @@ jobs:
         with:
           name: ${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.tags }}
           path: |
-            appling/build/oniri.exe
+            build/oniri.exe
           retention-days: 1
 
   merge:
