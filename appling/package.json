@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "name": "oniri",
+  "description": "Oniri Tunneling App",
+  "author": "Stavros Charitakis",
+  "license": "Apache-2.0",
+  "homepage": "https://oniricloud.com",
+  "devDependencies": {
+    "cmake-pear": "^3.0.0"
+  }
+}
