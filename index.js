@@ -8,9 +8,11 @@ import { header, footer, summary, command, flag, arg, bail, description, validat
 import process from 'bare-process'
 import IPC from 'pear-ipc'
 import path from 'bare-path'
+import { URL } from 'bare-url'
 
 import readline from 'bare-readline'  // Module for reading user input in terminal
 import tty from 'bare-tty'
+import http from 'bare-http1'
 
 import oniriService from './services/oniri-core/src/oniriService/oniriService.js'
 import { setEncKey, getEncKey, delEncKey } from './services/oniri-core/src/oniriService/encKey.js'
@@ -42,6 +44,7 @@ let settings = {
     autoStartDaemon: false
 }
 let server = null
+let httpServer = null
 let isConfigured = false;
 let showTty = true
 
@@ -437,8 +440,96 @@ const handleRpcCommand = {
 
 }
 
+// HTTP Server for non-TTY environments
+function createHttpServer() {
+    const httpServer = http.createServer((req, res) => {
+        // Enable CORS
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        res.setHeader('Content-Type', 'application/json');
 
+        if (req.method === 'OPTIONS') {
+            res.writeHead(200);
+            res.end();
+            return;
+        }
 
+        const url = new URL(req.url, `http://localhost:8777`);
+        
+        if (req.method === 'GET' && url.pathname === '/health') {
+            handleHealthCheck(res);
+        } else if (req.method === 'GET' && url.pathname === '/status') {
+            handleStatusCheck(res);
+        } else {
+            res.writeHead(404);
+            res.end(JSON.stringify({ error: 'Not found' }));
+        }
+    });
+
+    return httpServer;
+}
+
+async function handleHealthCheck(res) {
+    try {
+        const health = {
+            status: 'healthy',
+            timestamp: new Date().toISOString(),
+            uptime: serviceStartTime ? Date.now() - serviceStartTime : null,
+            service: oniriServiceInstance ? 'running' : 'stopped'
+        };
+        
+        res.writeHead(200);
+        res.end(JSON.stringify(health));
+    } catch (error) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ status: 'unhealthy', error: error.message }));
+    }
+}
+
+async function handleStatusCheck(res) {
+    try {
+        const statusResult = await handleRpcCommand.GET_STATUS({});
+        const statusData = JSON.parse(statusResult);
+        
+        res.writeHead(200);
+        res.end(JSON.stringify({
+            ...statusData,
+            httpServer: {
+                status: 'running',
+                port: 8777,
+                endpoints: ['/health', '/status']
+            }
+        }));
+    } catch (error) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: error.message }));
+    }
+}
+
+async function startHttpServer() {
+    if (httpServer) {
+        console.log('HTTP server already running');
+        return;
+    }
+
+    httpServer = createHttpServer();
+    
+    httpServer.listen(8777, () => {
+        console.log('🌐 HTTP server started on http://localhost:8777');
+        console.log('📍 Available endpoints:');
+        console.log('  - GET /health  - Health check endpoint');
+        console.log('  - GET /status  - Service status information');
+    });
+
+    httpServer.on('error', (error) => {
+        if (error.code === 'EADDRINUSE') {
+            console.error('❌ Port 8777 is already in use');
+        } else {
+            console.error('❌ HTTP server error:', error.message);
+        }
+    });
+}
 
 
 const runService = async () => {
@@ -701,7 +792,10 @@ const runService = async () => {
         }
     }
 
-    if (showTty) {
+    // Check if TTY is available
+    const isTtyAvailable = process.stdin.isTTY && process.stdout.isTTY;
+    
+    if (showTty && isTtyAvailable) {
 
         rl.setPrompt('oniri> ')
         rl.input.setMode(tty.constants.MODE_RAW) // Enable raw input mode for efficient key reading
@@ -738,9 +832,22 @@ const runService = async () => {
         rl.on('close', () => {
             process.exit()
         })
+    } else {
+        // No TTY available or disabled - start HTTP server instead
+        console.log('🔧 TTY not available or disabled, starting HTTP server mode...');
+        
+        // Automatically start the service if configured
+        // if (isConfigured) {
+        //     console.log('⚡ Auto-starting Oniri service...');
+        //     await handleRpcCommand.START_ONIRI_SERVICE({});
+        // }
+        
+        // Start HTTP server
+        await startHttpServer();
+        
+        console.log('✅ Oniri service ready in HTTP mode');
+        console.log('🔗 Use /health and /status endpoints for monitoring');
     }
-    //console.log("Parsing command line arguments...",process.argv.slice(1))
-
 
 }
 
@@ -753,6 +860,10 @@ goodbye(() => {
     console.log("Received termination signal, shutting down...")
     if (server !== null) {
         server.close()
+    }
+    if (httpServer !== null) {
+        httpServer.close()
+        console.log("HTTP server closed")
     }
 })
 
