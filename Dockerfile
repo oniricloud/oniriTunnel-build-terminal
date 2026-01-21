@@ -17,9 +17,9 @@ RUN mkdir -p /root/.oniri
 # Detect architecture and download appropriate executable
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \
-        DOWNLOAD_URL="https://github.com/oniricloud/oniriTunnel-build-terminal/releases/download/v1/oniri-terminal-linux-x64"; \
+        DOWNLOAD_URL="https://github.com/oniricloud/oniri-terminal-repo/releases/download/v1/oniri-terminal-linux-x64"; \
     elif [ "$ARCH" = "aarch64" ]; then \
-        DOWNLOAD_URL="https://github.com/oniricloud/oniriTunnel-build-terminal/releases/download/v1/oniri-terminal-linux-arm64"; \
+        DOWNLOAD_URL="https://github.com/oniricloud/oniri-terminal-repo/releases/download/v1/oniri-terminal-linux-arm64"; \
     else \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
@@ -52,9 +52,9 @@ echo "Password: [HIDDEN]"
 if [ ! -f "/root/.oniri/encp.json" ]; then
     echo "Configuring and starting Oniri Tunnel Service..."
     echo "Running: /app/oniri config -s [SEED] -p [PASSWORD]"
-    /app/oniri config -s "$ONIRI_SEED" -p "$ONIRI_PASSWORD" || {
+    /app/oniri config -n -s "$ONIRI_SEED" -p "$ONIRI_PASSWORD" || {
         echo "Configuration failed, trying with long flags..."
-        /app/oniri config --seed "$ONIRI_SEED" --pass "$ONIRI_PASSWORD" || {
+        /app/oniri config --notty --seed "$ONIRI_SEED" --pass "$ONIRI_PASSWORD" || {
             echo "Configuration failed with both flag formats"
             exit 1
         }
