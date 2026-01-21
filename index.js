@@ -566,7 +566,7 @@ const runService = async () => {
         config: {
             name: "config",
             execute: async (flags, args) => {
-
+                console.log("Configuring Oniri Service with seed and password...", flags.pass, flags.seed)
                 const res = await handleRpcCommand.CONFIGURE({ password: flags.pass, seed: flags.seed })
                 const resData = JSON.parse(res)
                 if (resData.error) {
@@ -721,8 +721,8 @@ const runService = async () => {
                 }
             })
         )
-
-        const initcmdParsed = initcmd.parse(process.argv.slice(2))
+ 
+        const initcmdParsed = initcmd.parse(process.argv.slice(1))
         if (initcmdParsed == null) {
             console.log("\n", "You need to configure the Oniri Tunnel Service before using it. Use the config command.", "\n")
             process.exit(0)

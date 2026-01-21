@@ -1,0 +1,11 @@
+# Oniri Tunnel Configuration
+# Copy this file to .env and fill in your actual values
+
+# Your 12-word seed phrase from oniricloud.com dashboard
+ONIRI_SEED=word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12
+
+# Your password for the Oniri client
+ONIRI_PASSWORD=your-secure-password
+
+# Auto-start the service (default: true)
+ONIRI_AUTO_START=true
