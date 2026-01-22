@@ -22,6 +22,7 @@ Edit `.env` with your actual values:
 ```bash
 ONIRI_SEED=your 12 word seed phrase from oniricloud dashboard here
 ONIRI_PASSWORD=your-actual-password
+HTTP_PORT=8777
 ```
 
 ### 2. Build and Run Locally
@@ -98,12 +99,28 @@ docker run -d -t \
   --name oniri-tunnel \
   -e ONIRI_SEED="your 12 word seed phrase here" \
   -e ONIRI_PASSWORD="your-secure-password" \
+  -e HTTP_PORT=8777 \
   --network host \
   -v oniri-config:/root/.oniri \
   your-username/oniri:latest
 
 # Check service health after startup
 curl http://localhost:8777/health
+```
+
+**With custom port:**
+```bash
+docker run -d -t \
+  --name oniri-tunnel \
+  -e ONIRI_SEED="your 12 word seed phrase here" \
+  -e ONIRI_PASSWORD="your-secure-password" \
+  -e HTTP_PORT=9000 \
+  --network host \
+  -v oniri-config:/root/.oniri \
+  your-username/oniri:latest
+
+# Check service health on custom port
+curl http://localhost:9000/health
 ```
 
 ### With Docker Compose
@@ -124,6 +141,7 @@ services:
     environment:
       - ONIRI_SEED=${ONIRI_SEED}
       - ONIRI_PASSWORD=${ONIRI_PASSWORD}
+      - HTTP_PORT=${HTTP_PORT:-8777}
     volumes:
       - oniri-config:/root/.oniri
       - oniri-logs:/root/.oniri/logs
@@ -163,13 +181,25 @@ The service uses `network_mode: host` to support dynamic port allocation for tun
 
 ## HTTP Monitoring Server
 
-The service automatically starts an HTTP server on port **8777** when running in non-TTY environments (like Docker containers). This provides REST API endpoints for monitoring and health checks.
+The service automatically starts an HTTP server on a configurable port (default **8777**) when running in non-TTY environments (like Docker containers). This provides REST API endpoints for monitoring and health checks.
+
+### Port Configuration
+
+You can customize the HTTP monitoring port using the `HTTP_PORT` environment variable:
+
+```bash
+# Default port 8777
+HTTP_PORT=8777
+
+# Custom port 9000  
+HTTP_PORT=9000
+```
 
 ### Available Endpoints
 
 #### Health Check
 ```bash
-GET http://localhost:8777/health
+GET http://localhost:{HTTP_PORT}/health
 ```
 Returns service health status:
 ```json
@@ -183,7 +213,7 @@ Returns service health status:
 
 #### Service Status  
 ```bash
-GET http://localhost:8777/status
+GET http://localhost:{HTTP_PORT}/status
 ```
 Returns detailed service information:
 ```json
@@ -215,14 +245,18 @@ Returns detailed service information:
 ### Monitoring Examples
 
 ```bash
-# Quick health check
+# Quick health check (default port)
 curl http://localhost:8777/health
+
+# Quick health check (custom port)
+curl http://localhost:9000/health
 
 # Get detailed status
 curl http://localhost:8777/status | jq
 
-# Health check in scripts
-if curl -f http://localhost:8777/health >/dev/null 2>&1; then
+# Health check in scripts (with custom port)
+HTTP_PORT=${HTTP_PORT:-8777}
+if curl -f http://localhost:$HTTP_PORT/health >/dev/null 2>&1; then
   echo "Service is healthy"
 else  
   echo "Service is down"
@@ -243,18 +277,25 @@ Configuration persists across container restarts, so you only need to provide cr
 docker ps
 docker logs oniri-tunnel
 
-# Check HTTP endpoints
+# Check HTTP endpoints (default port)
 curl http://localhost:8777/health
 curl http://localhost:8777/status
+
+# Check HTTP endpoints (custom port)
+curl http://localhost:${HTTP_PORT}/health
+curl http://localhost:${HTTP_PORT}/status
 ```
 
 ### Monitor Service Health
 ```bash
-# Watch health status
+# Watch health status (default port)
 watch curl -s http://localhost:8777/health
 
+# Watch health status (custom port)
+watch curl -s http://localhost:${HTTP_PORT:-8777}/health
+
 # Get detailed service information  
-curl http://localhost:8777/status | jq '.data.service'
+curl http://localhost:${HTTP_PORT:-8777}/status | jq '.data.service'
 ```
 
 ### Restart Service
