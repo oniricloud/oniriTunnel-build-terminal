@@ -30,6 +30,7 @@ RUN ARCH=$(uname -m) && \
 # Environment variables
 ENV ONIRI_SEED=""
 ENV ONIRI_PASSWORD=""
+ENV HTTP_PORT="8777"
 
 # Create main entrypoint script
 RUN cat > /app/entrypoint.sh << 'EOF'
@@ -47,30 +48,51 @@ fi
 echo "Starting Oniri Tunnel Service..."
 echo "Seed: ${ONIRI_SEED:0:20}..."
 echo "Password: [HIDDEN]"
+echo "HTTP Port: ${HTTP_PORT:-8777}"
+
+# Set default HTTP_PORT if not provided
+if [ -z "$HTTP_PORT" ]; then
+    HTTP_PORT=8777
+fi
 
 # Check if already configured
 if [ ! -f "/root/.oniri/encp.json" ]; then
     echo "Configuring and starting Oniri Tunnel Service..."
-    echo "Running: /app/oniri config -s [SEED] -p [PASSWORD]"
-    /app/oniri config -n -s "$ONIRI_SEED" -p "$ONIRI_PASSWORD" || {
-        echo "Configuration failed, trying with long flags..."
-        /app/oniri config --notty --seed "$ONIRI_SEED" --pass "$ONIRI_PASSWORD" || {
-            echo "Configuration failed with both flag formats"
-            exit 1
+    if [ ! -z "$HTTP_PORT" ] && [ "$HTTP_PORT" != "8777" ]; then
+        echo "Running: /app/oniri config -s [SEED] -p [PASSWORD] --port $HTTP_PORT"
+        /app/oniri config -n -s "$ONIRI_SEED" -p "$ONIRI_PASSWORD" --port "$HTTP_PORT" || {
+            echo "Configuration failed, trying with long flags..."
+            /app/oniri config --notty --seed "$ONIRI_SEED" --pass "$ONIRI_PASSWORD" --port "$HTTP_PORT" || {
+                echo "Configuration failed with both flag formats"
+                exit 1
+            }
         }
-    }
+    else
+        echo "Running: /app/oniri config -s [SEED] -p [PASSWORD]"
+        /app/oniri config -n -s "$ONIRI_SEED" -p "$ONIRI_PASSWORD" || {
+            echo "Configuration failed, trying with long flags..."
+            /app/oniri config --notty --seed "$ONIRI_SEED" --pass "$ONIRI_PASSWORD" || {
+                echo "Configuration failed with both flag formats"
+                exit 1
+            }
+        }
+    fi
     echo "Configuration completed, now starting service..."
 fi
 
 echo "Starting Oniri service..."
-exec /app/oniri config --notty --seed "$ONIRI_SEED" --pass "$ONIRI_PASSWORD"
+if [ ! -z "$HTTP_PORT" ] && [ "$HTTP_PORT" != "8777" ]; then
+    exec /app/oniri config --notty --seed "$ONIRI_SEED" --pass "$ONIRI_PASSWORD" --port "$HTTP_PORT"
+else
+    exec /app/oniri config --notty --seed "$ONIRI_SEED" --pass "$ONIRI_PASSWORD"
+fi
 EOF
 
 # Make entrypoint script executable
 RUN chmod +x /app/entrypoint.sh
 
-# Expose any ports if needed (add specific ports based on your service requirements)
-# EXPOSE 8080
+# Expose configurable HTTP port (default 8777)
+EXPOSE ${HTTP_PORT:-8777}
 
 # Use entrypoint script
 ENTRYPOINT ["/app/entrypoint.sh"]

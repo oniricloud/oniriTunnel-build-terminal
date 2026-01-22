@@ -785,7 +785,7 @@ const runService = async () => {
                 if (initcmdParsed.flags.notty) {
                     showTty = false
                 }
-                if( initcmdParsed.flags.port) {
+                if (initcmdParsed.flags.port) {
                     httpPort = parseInt( initcmdParsed.flags.port, 10)
                 }
                 console.log("\n", "Oniri Tunnel Service is already configured.", "\n")
