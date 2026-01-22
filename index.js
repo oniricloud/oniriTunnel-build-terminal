@@ -6,7 +6,6 @@ import { header, footer, summary, command, flag, arg, bail, description, validat
 
 // import IPC from 'bare-ipc'
 import process from 'bare-process'
-import IPC from 'pear-ipc'
 import path from 'bare-path'
 import { URL } from 'bare-url'
 
@@ -29,10 +28,7 @@ const SOCKET_PATH = isWindows
     ? '\\\\.\\pipe\\my-bare-pipe'
     : '/tmp/my-bare-pipe.sock';
 
-const rl = readline.createInterface({
-    input: new tty.ReadStream(0),
-    output: new tty.WriteStream(1)
-})
+
 
 // Global state
 let rpc
@@ -456,7 +452,7 @@ function createHttpServer() {
         }
 
         const url = new URL(req.url, `http://localhost:8777`);
-        
+
         if (req.method === 'GET' && url.pathname === '/health') {
             handleHealthCheck(res);
         } else if (req.method === 'GET' && url.pathname === '/status') {
@@ -478,7 +474,7 @@ async function handleHealthCheck(res) {
             uptime: serviceStartTime ? Date.now() - serviceStartTime : null,
             service: oniriServiceInstance ? 'running' : 'stopped'
         };
-        
+
         res.writeHead(200);
         res.end(JSON.stringify(health));
     } catch (error) {
@@ -491,7 +487,7 @@ async function handleStatusCheck(res) {
     try {
         const statusResult = await handleRpcCommand.GET_STATUS({});
         const statusData = JSON.parse(statusResult);
-        
+
         res.writeHead(200);
         res.end(JSON.stringify({
             ...statusData,
@@ -514,7 +510,7 @@ async function startHttpServer() {
     }
 
     httpServer = createHttpServer();
-    
+
     httpServer.listen(8777, () => {
         console.log('🌐 HTTP server started on http://localhost:8777');
         console.log('📍 Available endpoints:');
@@ -780,8 +776,8 @@ const runService = async () => {
                 console.log("Configuring Oniri Tunnel Service...")
                 await commands.config.execute(initcmdParsed.flags, initcmdParsed.args)
                 console.log("\n", "Oniri Tunnel Service configured successfully.", "\n")
-            }else{
-                if(initcmdParsed.flags.notty){
+            } else {
+                if (initcmdParsed.flags.notty) {
                     showTty = false
                 }
                 console.log("\n", "Oniri Tunnel Service is already configured.", "\n")
@@ -794,8 +790,12 @@ const runService = async () => {
 
     // Check if TTY is available
     const isTtyAvailable = process.stdin.isTTY && process.stdout.isTTY;
-    
+
     if (showTty && isTtyAvailable) {
+        const rl = readline.createInterface({
+            input: new tty.ReadStream(0),
+            output: new tty.WriteStream(1)
+        })
 
         rl.setPrompt('oniri> ')
         rl.input.setMode(tty.constants.MODE_RAW) // Enable raw input mode for efficient key reading
@@ -835,16 +835,16 @@ const runService = async () => {
     } else {
         // No TTY available or disabled - start HTTP server instead
         console.log('🔧 TTY not available or disabled, starting HTTP server mode...');
-        
+
         // Automatically start the service if configured
         // if (isConfigured) {
         //     console.log('⚡ Auto-starting Oniri service...');
         //     await handleRpcCommand.START_ONIRI_SERVICE({});
         // }
-        
+
         // Start HTTP server
         await startHttpServer();
-        
+
         console.log('✅ Oniri service ready in HTTP mode');
         console.log('🔗 Use /health and /status endpoints for monitoring');
     }

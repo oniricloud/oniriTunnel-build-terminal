@@ -63,7 +63,7 @@ if [ ! -f "/root/.oniri/encp.json" ]; then
 fi
 
 echo "Starting Oniri service..."
-exec /app/oniri
+exec /app/oniri config --notty --seed "$ONIRI_SEED" --pass "$ONIRI_PASSWORD"
 EOF
 
 # Make entrypoint script executable

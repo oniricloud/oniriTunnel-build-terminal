@@ -6,18 +6,13 @@ services:
     container_name: oniri-tunnel
     restart: unless-stopped
     network_mode: host
-    tty: true
-    stdin_open: true
     environment:
       - ONIRI_SEED=${ONIRI_SEED}
       - ONIRI_PASSWORD=${ONIRI_PASSWORD}
     volumes:
       - oniri-config:/root/.oniri
       - oniri-logs:/root/.oniri/logs
-    # Uncomment and modify ports as needed for your services
-    # ports:
-    #   - "8080:8080"
-    #   - "3000:3000"
+    # Note: Port 8777 (HTTP monitoring) is automatically available via host network
 
 volumes:
   oniri-config:

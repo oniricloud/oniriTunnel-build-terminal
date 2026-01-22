@@ -101,6 +101,9 @@ docker run -d -t \
   --network host \
   -v oniri-config:/root/.oniri \
   your-username/oniri:latest
+
+# Check service health after startup
+curl http://localhost:8777/health
 ```
 
 ### With Docker Compose
@@ -135,6 +138,9 @@ volumes:
 Then run:
 ```bash
 docker-compose up -d
+
+# Verify service is running
+curl http://localhost:8777/health
 ```
 
 ## Architecture Support
@@ -151,8 +157,77 @@ Docker automatically pulls the correct architecture for your system.
 The service uses `network_mode: host` to support dynamic port allocation for tunnel connections. This allows the Oniri service to:
 
 - Open ports dynamically as needed
-- Accept incoming tunnel connections
+- Accept incoming tunnel connections  
 - Provide full network access without port mapping limitations
+- Expose HTTP monitoring endpoints on port 8777
+
+## HTTP Monitoring Server
+
+The service automatically starts an HTTP server on port **8777** when running in non-TTY environments (like Docker containers). This provides REST API endpoints for monitoring and health checks.
+
+### Available Endpoints
+
+#### Health Check
+```bash
+GET http://localhost:8777/health
+```
+Returns service health status:
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-01-22T10:30:45.123Z", 
+  "uptime": 125000,
+  "service": "running"
+}
+```
+
+#### Service Status  
+```bash
+GET http://localhost:8777/status
+```
+Returns detailed service information:
+```json
+{
+  "data": {
+    "daemon": {
+      "status": "online",
+      "pid": 1234,
+      "uptime": 1642856445123
+    },
+    "service": {
+      "status": "online", 
+      "uptime": 125000
+    },
+    "configured": true,
+    "services": {
+      "local": {},
+      "remote": {}
+    },
+    "httpServer": {
+      "status": "running",
+      "port": 8777,
+      "endpoints": ["/health", "/status"]
+    }
+  }
+}
+```
+
+### Monitoring Examples
+
+```bash
+# Quick health check
+curl http://localhost:8777/health
+
+# Get detailed status
+curl http://localhost:8777/status | jq
+
+# Health check in scripts
+if curl -f http://localhost:8777/health >/dev/null 2>&1; then
+  echo "Service is healthy"
+else  
+  echo "Service is down"
+fi
+```
 
 ## Volume Persistence
 
@@ -167,6 +242,19 @@ Configuration persists across container restarts, so you only need to provide cr
 ```bash
 docker ps
 docker logs oniri-tunnel
+
+# Check HTTP endpoints
+curl http://localhost:8777/health
+curl http://localhost:8777/status
+```
+
+### Monitor Service Health
+```bash
+# Watch health status
+watch curl -s http://localhost:8777/health
+
+# Get detailed service information  
+curl http://localhost:8777/status | jq '.data.service'
 ```
 
 ### Restart Service
@@ -220,8 +308,11 @@ docker login
 docker buildx create --name multiarch --use
 docker buildx build --platform linux/amd64,linux/arm64 -t yourusername/oniri:latest --push .
 
-# 4. Use published image
+# 4. Use published image and verify
 docker run -d -t --name oniri-tunnel --network host \
   -e ONIRI_SEED="your seed" -e ONIRI_PASSWORD="your password" \
   -v oniri-config:/root/.oniri yourusername/oniri:latest
+
+# Check that service is healthy
+curl http://localhost:8777/health
 ```
