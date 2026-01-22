@@ -43,6 +43,7 @@ let server = null
 let httpServer = null
 let isConfigured = false;
 let showTty = true
+let httpPort = 8777; // Default HTTP port
 
 function table(headers, rows, options = {}) {
     const align = options.align || headers.map(() => 'left')
@@ -511,8 +512,8 @@ async function startHttpServer() {
 
     httpServer = createHttpServer();
 
-    httpServer.listen(8777, () => {
-        console.log('🌐 HTTP server started on http://localhost:8777');
+    httpServer.listen(httpPort,"0.0.0.0", () => {
+        console.log('🌐 HTTP server started on http://0.0.0.0:'+httpPort);
         console.log('📍 Available endpoints:');
         console.log('  - GET /health  - Health check endpoint');
         console.log('  - GET /status  - Service status information');
@@ -608,6 +609,9 @@ const runService = async () => {
                 if (flags.notty) {
                     showTty = false
                 }
+                if(flags.port) {
+                 httpPort = parseInt( initcmdParsed.flags.port, 10)
+                }
                 const res = await handleRpcCommand.CONFIGURE({ password: flags.pass, seed: flags.seed })
                 const resData = JSON.parse(res)
                 if (resData.error) {
@@ -696,6 +700,7 @@ const runService = async () => {
         flag('--seed|-s [seed]', 'The client seed found in oniricloud.com dashboard'),
         flag('--pass|-p [pass]', 'The password for the Oniri client'),
         flag('--notty|-n', 'Disable TTY mode'),
+        flag('--port|-o [port]', 'Specify the HTTP port to use (default 8777)'),
         //  flag('--flag [val] ', 'Test flag').choices(['val1', 'val2', 'val3'])
         validate((p) => (p.flags.seed && p.flags.pass), "You must provide both client seed and password")
 
@@ -779,6 +784,9 @@ const runService = async () => {
             } else {
                 if (initcmdParsed.flags.notty) {
                     showTty = false
+                }
+                if( initcmdParsed.flags.port) {
+                    httpPort = parseInt( initcmdParsed.flags.port, 10)
                 }
                 console.log("\n", "Oniri Tunnel Service is already configured.", "\n")
             }

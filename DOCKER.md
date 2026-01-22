@@ -299,6 +299,9 @@ cd oniri-tunnel
 cp .env.example .env
 # Edit .env with your credentials
 
+#rebuild 
+docker-compose build --no-cache
+
 # 2. Test locally
 docker-compose up -d
 docker logs oniri-tunnel
