@@ -9,10 +9,11 @@ services:
     environment:
       - ONIRI_SEED=${ONIRI_SEED}
       - ONIRI_PASSWORD=${ONIRI_PASSWORD}
+      - HTTP_PORT=${HTTP_PORT:-8777}
     volumes:
       - oniri-config:/root/.oniri
       - oniri-logs:/root/.oniri/logs
-    # Note: Port 8777 (HTTP monitoring) is automatically available via host network
+    # Note: HTTP monitoring port (configurable via HTTP_PORT env var) is automatically available via host network
 
 volumes:
   oniri-config:

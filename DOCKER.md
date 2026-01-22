@@ -309,7 +309,7 @@ docker logs oniri-tunnel
 # 3. Build and push to Docker Hub
 docker login
 docker buildx create --name multiarch --use
-docker buildx build --platform linux/amd64,linux/arm64 -t yourusername/oniri:latest --push .
+docker buildx build --platform linux/amd64,linux/arm64 -t sce9sc/oniri:latest --push .
 
 # 4. Use published image and verify
 docker run -d -t --name oniri-tunnel --network host \
