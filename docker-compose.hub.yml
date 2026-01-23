@@ -5,9 +5,10 @@ services:
     image: sce9sc/oniri:latest
     container_name: oniri-tunnel-hub
     restart: unless-stopped
-    network_mode: host
-    tty: true
-    stdin_open: true
+    ports:
+      - "${HTTP_PORT:-8777}:${HTTP_PORT:-8777}"
+      # Dynamic port range for tunnel connections
+      - "20000-30000:20000-30000"
     environment:
       - ONIRI_SEED=${ONIRI_SEED}
       - ONIRI_PASSWORD=${ONIRI_PASSWORD}

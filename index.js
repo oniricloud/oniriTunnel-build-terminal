@@ -512,8 +512,8 @@ async function startHttpServer() {
 
     httpServer = createHttpServer();
 
-    httpServer.listen(httpPort,"0.0.0.0", () => {
-        console.log('🌐 HTTP server started on http://0.0.0.0:'+httpPort);
+    httpServer.listen(httpPort, "0.0.0.0", () => {
+        console.log('🌐 HTTP server started on http://0.0.0.0:' + httpPort);
         console.log('📍 Available endpoints:');
         console.log('  - GET /health  - Health check endpoint');
         console.log('  - GET /status  - Service status information');
@@ -609,8 +609,8 @@ const runService = async () => {
                 if (flags.notty) {
                     showTty = false
                 }
-                if(flags.port) {
-                 httpPort = parseInt( initcmdParsed.flags.port, 10)
+                if (flags.port) {
+                    httpPort = parseInt(initcmdParsed.flags.port, 10)
                 }
                 const res = await handleRpcCommand.CONFIGURE({ password: flags.pass, seed: flags.seed })
                 const resData = JSON.parse(res)
@@ -786,7 +786,7 @@ const runService = async () => {
                     showTty = false
                 }
                 if (initcmdParsed.flags.port) {
-                    httpPort = parseInt( initcmdParsed.flags.port, 10)
+                    httpPort = parseInt(initcmdParsed.flags.port, 10)
                 }
                 console.log("\n", "Oniri Tunnel Service is already configured.", "\n")
             }

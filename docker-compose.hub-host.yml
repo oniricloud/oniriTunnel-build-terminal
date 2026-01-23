@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  oniri-tunnel:
+    image: sce9sc/oniri:latest
+    container_name: oniri-tunnel-hub-host
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - ONIRI_SEED=${ONIRI_SEED}
+      - ONIRI_PASSWORD=${ONIRI_PASSWORD}
+      - HTTP_PORT=${HTTP_PORT:-8777}
+    volumes:
+      - oniri-config-hub-host:/root/.oniri
+    pull_policy: always
+    # Force the container to bind HTTP server to all interfaces
+    command: >
+      sh -c "
+      echo 'Starting with host networking...' &&
+      /app/oniri config --notty --seed \"$$ONIRI_SEED\" --pass \"$$ONIRI_PASSWORD\" --port \"$$HTTP_PORT\"
+      "
+
+volumes:
+  oniri-config-hub-host:
+    driver: local
